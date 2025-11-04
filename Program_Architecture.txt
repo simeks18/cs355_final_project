@@ -1,0 +1,20 @@
+Program will use a ncurses GUI to create a file explorer that has the ability to encrypt and decrypt files using the following algorithms.
+1. XOR encryption
+2. ??
+3. ?? 
+
+Program Design - Efficacy
+1. An embedded key is generated and stored in a hidden file. This key is generated upon first run and is based on unique machine data. Possibly user ID?
+2. Generate keys for different encryption methods based on this embedded key. Store them in a hidden file. 
+
+Program Design - File Handling Methodology 
+Encryption Process
+1. A simple 16-bit Twos complement checksum is generated of the original file contents.
+2. The file is then encrypted and prefixed with a 5 byte header. 
+    Header Contents (Little endian): Emebedded Key (MSB) | Emebedded Key (LSB) | Twos Complement Checksum (MSB) | Twos Complement Checksum (LSB) | Pointer to encryption method used
+
+Decryption Process 
+1. A file is opened and the first two bytes are read to see if it matches our embedded key.
+2. If so, we know the file has been encrypted. Read the next two bytes and store the checksum.
+3. Load the pointer to the encryption method used to call the coresponding decryption routine (Array of function pointers)
+4. Run checksum routine to ensure decryption was performed successfully. 
