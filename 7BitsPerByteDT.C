@@ -1,0 +1,124 @@
+#include <stdio.h>
+#define MAX_BITS 699
+#define MAX_BYTES (MAX_BITS/7)+1
+typedef char KByteDT[MAX_BYTES];
+#define byte_location(A) (A/7)
+//Above definign the data type in terms of standard C data types
+//Referencing from the book Applied C by Strawberry Software Inc
+//This C version is NOT compatible with my compiler 11.8.2025
+//Attempting to make it compatible
+
+
+void printinHex(KByteDT KByte)
+{
+int n = MAX_BYTES-1;
+
+while(n >= 0){
+printf("%02x", (unsigned char)KByte[n]);
+n--;
+}
+printf("\n");
+}
+void clear_all_bits(KByteDT kbyte)
+{
+int n = 0;
+while (n < MAX_BYTES)
+{
+kbyte[n]=0;
+n++;
+}
+}
+
+void set_specific_bit(KByteDT kbyte, int bitno)
+{
+char mask;
+int index;
+
+mask = (1 << (bitno % 7));
+index = bitno / 7;
+
+kbyte[index] |= mask;
+}
+
+void clear_bit(KByteDT kbyte, int bitno)
+{
+char mask;
+int index;
+
+mask = ~(1 << (bitno %7));
+index = bitno /7;
+
+kbyte[index] &= mask;
+}
+
+void and_bits(KByteDT result, KByteDT kb1, KByteDT kb2)
+{
+int n = 0;
+
+while(n < MAX_BYTES)
+{
+result[n] = kb1[n] & kb2[n];
+n++;
+}
+}
+
+
+void or_bits(KByteDT result, KByteDT kb1, KByteDT kb2)
+{
+int n = 0;
+while (n< MAX_BYTES)
+{
+result[n] = kb1[n] | kb2[n];
+n++;
+}
+}
+
+int main()
+{
+KByteDT array_A;
+    KByteDT array_B;
+    KByteDT result_array;
+
+ printf("--- Initializing Arrays ---\n");
+    clear_all_bits(array_A);
+    clear_all_bits(array_B);
+    clear_all_bits(result_array);
+    printf("Array A: ");
+    printinHex(array_A);
+
+printf("\n--- Testing set_specific_bit ---\n");
+    printf("Setting bit 7 in array A:\n");
+    set_specific_bit(array_A, 7);
+    printf("Array A: ");
+    printinHex(array_A);
+
+printf("Setting bit 14 in array B:\n");
+    set_specific_bit(array_B, 14);
+    printf("Array B: ");
+    printinHex(array_B);
+
+printf("\n--- Testing and_bits (&) ---\n");
+    and_bits(result_array, array_A, array_B);
+    printf("Result (A & B): ");
+    printinHex(result_array);
+
+ printf("\n--- Testing and_bits (&) ---\n");
+    and_bits(result_array, array_A, array_B);
+    printf("Result (A & B): ");
+    printinHex(result_array);
+
+ printf("\n--- Testing or_bits (|) ---\n");
+    or_bits(result_array, array_A, array_B);
+    printf("Result (A | B): ");
+    printinHex(result_array);
+
+printf("\n--- Testing clear_bit ---\n");
+    printf("Clearing bit 4 from the result array:\n");
+    clear_bit(result_array, 4);
+    printf("Result: ");
+    printinHex(result_array);
+
+ return 0;
+}
+
+
