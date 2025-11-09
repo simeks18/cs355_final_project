@@ -58,7 +58,7 @@ int n = 0;
 
 while(n < MAX_BYTES)
 {
-result[n] = kb1[n] | kb2[n];
+result[n] = kb1[n] & kb2[n];
 n++;
 }
 }
