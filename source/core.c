@@ -32,3 +32,23 @@ char get_file_information(char* path, char* filename, file_info* fileInfo)
 		return -1;
 	}
 }
+
+// Grabs the number of files and their filenames 
+void get_directory_information(char* path, file_info* fileNode)
+{
+	int i = 0;
+	DIR* targetDirectory = null;
+	dirent* currentEntry = null;
+	targetDirectory = opendir(path);
+	// TODO need error checking
+	fileNode = malloc(sizeof(file_info));
+	while(currentEntry = readdir(targetDirectory))
+	{
+		// TODO need error checking
+		strcpy(fileNode->filename, currentEntry->d_name);
+		fileNode->number = i;
+		fileNode->next = malloc(sizeof(file_info));
+		fileNode->next->number = -1;				// This is how we know its an empty fileNode
+	}		
+}
+

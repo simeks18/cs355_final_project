@@ -16,6 +16,7 @@ typedef struct
 	int userID;
 	int groupID;
 	int mode;
+	int number;
 	file_info* nextFile; 
 	
 	// TODO probably should add fields for timestamp and hardlink count
@@ -25,3 +26,4 @@ typedef struct
 
 // One stop shop to get file information. Returns -1 on failure
 char get_file_information(char* path, char* filename, file_info* fileInfo);
+void get_directory_information(char* path, file_info* fileNode);
