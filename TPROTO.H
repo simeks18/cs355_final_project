@@ -1,5 +1,10 @@
 //Library prototypes
 
+//If not defined,
+//Define TPROTO header fike
+#ifndef TPROTO_H
+#define TPROTO_H
+
 #include <keyboard.h>
 #include <ascii.h>
 #include <tstruct.h>
@@ -159,3 +164,4 @@ void setClock(int, int, int);
 void DisplayError(void);
 void EraseError(void);
 
+#endif
