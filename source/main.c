@@ -10,7 +10,7 @@
 
 // Prototypes
 static void free_file_list(file_info* head);
-void menu_navigation(file_info* head);
+file_info* menu_navigation(file_info* head, unsigned int fileCount);
 
 int main(int argc, char* argv[])
 {
@@ -24,10 +24,10 @@ int main(int argc, char* argv[])
     int count = 0;
     int row = 3;
     int idx = 0;
-    file_info* fileList = get_directory_information(dirpath);
+    file_info* headNode = get_directory_information(dirpath);
 
     // Invalid Directory Test
-    if (!fileList)
+    if (!headNode)
     {
         fprintf(stderr, "Failed to open directory: %s\n", dirpath);
         return 1;
@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
     while(currentFile->number > 0)
     {
 		++count;
-		currentFile = currentNode->next;
+		currentFile = currentFile->next;
     }
     currentFile = headNode;
 
@@ -166,20 +166,22 @@ file_info* menu_navigation(file_info* head, unsigned int fileCount)
 		if(pos > currentFile->number)
 			while(currentFile->number != pos)				// TODO should probably have some error checking here at some point
 				currentFile = currentFile->next;
-		else if(pos < current->number)
+		else if(pos < currentFile->number)
 			while(currentFile->number != pos)
 				currentFile = currentFile->prev;
 		mvprintw(0, 2, "%d: %s", currentFile->number, currentFile->filename);
 	}
+	return NULL; // For now
 }
 
 static void free_file_list(file_info* head)
 {
-    file_info* tmp = null;
-    while (head->)
+    file_info* currentFile = head;
+	file_info* tmp;
+    while(tmp)
     {
-        tmp = head->next;
-        free(head);
-        head = tmp;
+        tmp = currentFile->next;
+		free(currentFile);
+		currentFile = tmp;
     }
 }
