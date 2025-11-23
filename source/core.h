@@ -19,6 +19,7 @@ typedef struct file_info {
     int mode;
     int number;
     struct file_info* next;
+    struct file_info* prev;
 } file_info;
 
 /* Function Prototypes */
