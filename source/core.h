@@ -8,6 +8,7 @@
 #define MAX_FILENAME_LEN 255
 #define MAX_PATH_LEN 1024
 #define FILETYPE_LEN 35
+#define MAX_PASSWORD_LEN 128
 
 /* forward-declare struct so typedef works */
 typedef struct file_info {
@@ -18,9 +19,10 @@ typedef struct file_info {
     int groupID;
     int mode;
     int number;
+	char action;		
     struct file_info* next;
     struct file_info* prev;
-} file_info;
+}file_info;
 
 /* Function Prototypes */
 int get_file_information(const char* path, const char* filename, file_info* fileInfo);
