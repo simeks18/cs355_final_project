@@ -3,7 +3,7 @@
 #include <string.h>
 #include "xorencryption.h" //must be in the same directory
 #include <errno.h>
-#define BUFFERSIZE = 2000;
+#define BUFFERSIZE 1001 //block size from encrypt 1.0 --- can be changed at anytime 
 
 
 
@@ -27,31 +27,28 @@ if (myprime < 1 || myprime > NUM_PRIMES) {
 return 1;
 }
 
-//is an array
-int prime = PRIMES[myprime -1];
 
 //read input file 
-FILE *fileinput = fopen(input_file), "rb");
-//if there is no file input
-if (!fileinput, "sadie_error");
-return 1;
+FILE *fileinput = fopen(input_file, "rb");
+if (!fileinput) {
+      printf("ERROR: Cannot open file!\n");
+      return 1;
 }
-
-FILE *fileoutput = fopen(output_file), "wb");
-if (!=fileoutput){
-fclose(fin);
+  
+FILE *fileoutput = fopen(output_file, "wb");
+if (!fileoutput) {fclose(fileinput);
 return 1;
 }
 
 
 unsigned char buffer[BUFFERSIZE];
-size_t bytesread;
-size_t bytesProcessedSoFar;
+size_t bytesread; 
+size_t total_processed = 0; //to make sure the whole file was processed
 printf("processing file in...%d byte blocks \n", BUFFERSIZE);
 
 while ((bytesread = fread(buffer, 1, BUFFERSIZE, fileinput)) > 0) {
-XORPrime(buffer, bytesread, prime, total_processed);
-fwrite(buffer, 1, bytesread, ffileoutput);
+xor_with_prime(buffer, bytesread, prime);
+fwrite(buffer, 1, bytesread, fileoutput);
 total_processed = total_processed + bytesread;
 }
 
