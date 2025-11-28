@@ -6,9 +6,9 @@
 int PRIMES[] = {2, 11, 23, 41, 59, 73, 97};
 int NUM_PRIMES = 7;
 
-//generate mask byte
+//XOR encrypt with prime mask
 void xor_with_prime(unsigned char *data, size_t length, int prime) {
-        for (size_t i = 0, i < length; i++){
+        for (size_t i = 0; i < length; i++){
         unsigned char mask = (unsigned char)((i * prime) & 0xFF);
         data[i] = data[i] ^ mask; //XOR OPERATION with MASK
         }
