@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "xor_crypt.h" //must be in the same directory
+#include "xorencryption.h" //must be in the same directory
 #include <errno.h>
+#define BUFFERSIZE = 2000;
+
+
 
 int main (int argc, char *argv[]){
 if (argc != 4){
@@ -12,8 +15,10 @@ printf(" %d. Prime %d\n", i + 1, PRIMES[i]);
 return 1;
 }
 
+//input and output files
 const char *input_file = argv[1];
 const char *output_file = argv[2];
+
 int myprime = atoi(argv[3]); // conver ASCII to integer
 int prime = PRIMES[myprime -1]; //select a prime and subtract one bc array
 
@@ -22,33 +27,35 @@ if (myprime < 1 || myprime > NUM_PRIMES) {
 return 1;
 }
 
+//is an array
 int prime = PRIMES[myprime -1];
 
 //read input file 
-FILE *fileinput = fopen(input_file), "read");
+FILE *fileinput = fopen(input_file), "rb");
 //if there is no file input
 if (!fileinput, "sadie_error");
 return 1;
 }
 
-FILE *fileoutput = fopen(output_file), "write");
+FILE *fileoutput = fopen(output_file), "wb");
 if (!=fileoutput){
 fclose(fin);
 return 1;
 }
 
 
-unsigned char buffer[BUFFER_SIZE];
+unsigned char buffer[BUFFERSIZE];
 size_t bytesread;
 size_t bytesProcessedSoFar;
-printf("processing file in...%d byte blocks \n", BUFFER_SIZE);
+printf("processing file in...%d byte blocks \n", BUFFERSIZE);
 
-while ((bytesread = fread(buffer, 1, BUFFER_SIZE, fileinput)) > 0) {
-
+while ((bytesread = fread(buffer, 1, BUFFERSIZE, fileinput)) > 0) {
 XORPrime(buffer, bytesread, prime, total_processed);
-
 fwrite(buffer, 1, bytesread, ffileoutput);
 total_processed = total_processed + bytesread;
+}
 
+fclose(fileinput);
+fclose(fileoutput);
 return 0;
 }
