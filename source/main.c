@@ -148,7 +148,6 @@ int encrypt(file_info* file, char* password)
 	return 0;
 }
 
-
 // Blocking function
 file_info* menu_navigation(file_info* head, unsigned int fileCount, WINDOW* window)
 {
@@ -156,12 +155,13 @@ file_info* menu_navigation(file_info* head, unsigned int fileCount, WINDOW* wind
 	int i = 0;
 	int y = 2;
 	unsigned int pos = 0;
+	int maxY = 0;
 	file_info* currentFile = head;
 	wclear(window);
 	box(window,0,0);
 	refresh();
 	wrefresh(window);				// Set focus to window before enabling cursor
-	while(i < fileCount)
+	while(currentFile->number != -1 && i < 10)
 	{
 		mvwprintw(window,y,2, "%d) %s", i, currentFile->filename);
 		currentFile = currentFile->next;
@@ -169,6 +169,8 @@ file_info* menu_navigation(file_info* head, unsigned int fileCount, WINDOW* wind
 		++i;
 		++y;
 	}
+	maxY = getmaxy(window);
+	mvwprintw(window, maxY-2, 1, "Prev 10 Files: Left Arrow | Next 10 Files: Right Arrow");
 	y = 2;
 	curs_set(2);
 	wmove(window,y,2);
@@ -202,6 +204,10 @@ file_info* menu_navigation(file_info* head, unsigned int fileCount, WINDOW* wind
 				while(currentFile->number != pos)
 					currentFile = currentFile->next;
 				return currentFile;
+				break;
+			case KEY_LEFT:
+				break;
+			case KEY_RIGHT:
 				break;
 			case 'q':
 				return NULL;
@@ -247,6 +253,9 @@ int action_menu(file_info* targetFile, char* encryptionPassword, WINDOW* menuWin
 			return 1;
 		} else if (choice == 'c') {
 			return 0;
+		} else if (choice == 'q') {
+			endwin();
+			exit(0);
 		} else {
 			mvwprintw(menuWindow, 4, 2, "Invalid Selection - Returning to the Main Menu");
 			wrefresh(menuWindow);
