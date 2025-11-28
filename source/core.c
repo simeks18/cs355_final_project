@@ -87,25 +87,24 @@ file_info* get_directory_information(const char* path)
 /* Simple XOR encrypt/decrypt: same function does both.
  * Returns 0 on success, -1 on failure.
  */
-int xor_file_with_password(const char* input_path, const char* output_path, const char* password)
+/*int xor_file_with_password(const char* input_path, const char* output_path, const char* password)
 {
     FILE* fin = fopen(input_path, "rb");
     FILE* fout = fopen(output_path, "wb");
-	
+
 	//if(fin == NULL || fout == NULL)
 	//	return -1;
 
     size_t passlen = strlen(password);
-	return 0;
-}
-    /*if (passlen == 0) 
-	{ 
+
+    if (passlen == 0) 
+	{
 		fclose(fin); 
 		fclose(fout); 
 		return -1; 
 	}
 
-    /*unsigned char buf[BUF_SIZE];
+    unsigned char buf[BUF_SIZE];
     size_t n;
     size_t offset = 0;
     while ((n = fread(buf, 1, sizeof(buf), fin)) > 0)

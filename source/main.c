@@ -4,18 +4,21 @@
 #include <string.h>
 #include <stdio.h>
 #include "core.h"
+#include "GUI.h"
 
 
 /* compile: gcc core.c main.c -lncurses -o fileexplorer */
 
 // Prototypes
 static void free_file_list(file_info* head);
-file_info* menu_navigation(file_info* head, unsigned int fileCount);
-int action_menu(file_info* targetFile, char* encryptionPassword);
+file_info* menu_navigation(file_info* head, unsigned int fileCount, WINDOW* window);
+int action_menu(file_info* targetFile, char* encryptionPassword, WINDOW* subWindow);
+int encrypt(file_info* file, char* password);
 
 int main(int argc, char* argv[])
 {
-    if (argc < 2) {
+    if (argc < 2)
+	{
         fprintf(stderr, "Usage: %s <directory>\n", argv[0]);
         return 1;
     }
@@ -25,11 +28,16 @@ int main(int argc, char* argv[])
     int count = 0;
     int row = 3;
     int idx = 0;
+	WINDOW* subWindow;
 	char encryptionPassword[MAX_PASSWORD_LEN];
+	char titleString[512];
+	sprintf(titleString,"Simple File Explorer and file encryptor | Active Directory:%s (q to quit)\n",dirpath);
+	char subtitleString[] = "Use up and down arrow keys to navigate. Press Enter to encrypt/decrypt selected file.\n";
     file_info* headNode = get_directory_information(dirpath);
 	file_info* currentFile = headNode;
 	file_info* selectedFile = NULL;
-    // Invalid Directory Test
+
+	// Invalid Directory Test
     if (!headNode)
     {
         fprintf(stderr, "Failed to open directory: %s\n", dirpath);
@@ -46,142 +54,149 @@ int main(int argc, char* argv[])
 
 
     // Starting the GUI Up...
-    initscr();
-    cbreak();
-    noecho();
-    keypad(stdscr, TRUE);
-    curs_set(0);
+	gui_init();
+	subWindow = newwin(SUB_WINDOW_HEIGHT, SUB_WINDOW_WIDTH,
+				(LINES-SUB_WINDOW_HEIGHT)/2, (COLS-SUB_WINDOW_WIDTH)/2);
+	keypad(subWindow,TRUE);
+	wbkgd(subWindow, COLOR_PAIR(CP_SUBWINDOW));
+	box(subWindow, 0,0);
+	wrefresh(subWindow);
 
     while (1)
     {
-        clear();
-        mvprintw(0, 0, "Simple File Explorer | Active Directory:%s (q to quit)", dirpath);
-        mvprintw(1, 0, "Use up and down arrow keys to navigate. Press Enter to encrypt/decrypt selected file.\n");
-        selectedFile = menu_navigation(headNode, count);			// Returns selected file (node)
-		if(action_menu(selectedFile, encryptionPassword) == 1)
+        mvprintw(LINES/8,(COLS - strlen(titleString))/2,titleString);
+        mvprintw((LINES/8)+1,(COLS - strlen(subtitleString))/2,subtitleString);
+        selectedFile = menu_navigation(headNode, count, subWindow);			// Returns selected file (node)
+		if(selectedFile == NULL)
+		{
+			endwin();
+			return 0;
+		}
+		if(action_menu(selectedFile, encryptionPassword, subWindow) == 1)
 		{
 			switch(selectedFile->action)
 			{
-				case 'e': 
-					; // Run encryption function on file 
-				case 'd': 
-					; // Run decryption function on file
+				case 'e':
+					encrypt(selectedFile, encryptionPassword); // Run encryption function on file
+				case 'd':
+					encrypt(selectedFile, encryptionPassword); // Run decryption function on file
 				default:
 					; // No action to take place here
 			}
 			selectedFile->action = 0;								// Reset after doing the work
 			encryptionPassword[0] = '\0';							// ...same
+		} else {
+
 		}
-
-
-	/*for (currentFile; currentFile->number > 0; currentFile = currentFile->next, ++idx) 
-	{
-            if (idx == highlight) 
-	    {
-                attron(A_REVERSE);
-                mvprintw(row, 2, "%d: %s", currentFile->number, currentFile->filename);
-                attroff(A_REVERSE);
-            } else {
-                mvprintw(row, 2, "%d: %s", currentFile->number, currentFile->filename);
-            }
-            row++;
-        }
-        refresh();
-        ch = getch();
-        if (ch == 'q') 
-	    break;
-	else if (ch == KEY_UP)
-            if (highlight > 0) 
-		highlight--;
-        else if (ch == KEY_DOWN)
-            if (highlight < count - 1) 
-		highlight++;
-        else if (ch == '\n' || ch == KEY_ENTER)
-	{
-            // find selected node 
-            file_info* sel = list;
-            for (int i = 0; i < highlight && sel; ++i) 
-				sel = sel->next;
-            if (sel)
-	{
-				// show action menu 
-				WINDOW* menu = newwin(7, 60, 4, 10);
-				box(menu, 0, 0);
-				mvwprintw(menu, 1, 2, "Selected: %s", sel->filename);
-				mvwprintw(menu, 2, 2, "e - Encrypt    d - Decrypt    c - Cancel");
-				mvwprintw(menu, 4, 2, "Enter choice: ");
-				wrefresh(menu);
-				int choice = wgetch(menu);
-				if (choice == 'e' || choice == 'd') {
-					/* prompt for password 
-					echo();
-					curs_set(1);
-					char password[128];
-					mvwprintw(menu, 4, 2, "Password: ");
-					wclrtoeol(menu);
-					mvwgetnstr(menu, 4, 12, password, sizeof(password)-1);
-					noecho();
-					curs_set(0);
-
-					/* build paths 
-					char input_path[MAX_PATH_LEN + MAX_FILENAME_LEN + 4];
-					char output_path[MAX_PATH_LEN + MAX_FILENAME_LEN + 8];
-					snprintf(input_path, sizeof(input_path), "%s/%s", dirpath, sel->filename);
-
-					if (choice == 'e') {
-						snprintf(output_path, sizeof(output_path), "%s/%s.enc", dirpath, sel->filename);
-						//int rc = xor_encrypt_file(input_path, output_path, password);
-						if (rc == 0) mvwprintw(menu, 5, 2, "Encrypted -> %s", output_path);
-						else mvwprintw(menu, 5, 2, "Encryption FAILED");
-					} else {
-						/* if .enc exists, try to decrypt to filename.dec (or strip .enc) 
-						const char* in_name = sel->filename;
-						if (strlen(in_name) > 4 && strcmp(in_name + strlen(in_name) - 4, ".enc") == 0) 
-						{
-							snprintf(output_path, sizeof(output_path), "%s/%.*s.dec", dirpath, (int)(strlen(in_name)-4), in_name);
-						} else {
-							snprintf(output_path, sizeof(output_path), "%s/%s.dec", dirpath, sel->filename);
-						}
-						//int rc = xor_decrypt_file(input_path, output_path, password);
-						if (rc == 0) mvwprintw(menu, 5, 2, "Decrypted -> %s", output_path);
-						else mvwprintw(menu, 5, 2, "Decryption FAILED");
-					}
-					wrefresh(menu);
-					wgetch(menu); /* wait for key 
-				}
-			}
-            delwin(menu);
-        }
-    }
+	}
     endwin();
     free_file_list(headNode);
-    return 0; */
+    return 0;
+}
+
+// Encryption/Decryption Function - Returns -1 on failure
+int encrypt(file_info* file, char* password)
+{
+	char tempFilePath[MAX_PATH_LEN];
+    char buffer;
+	FILE* outputFile;
+	FILE* inputFile;
+	size_t passlen;
+	int i = 0;
+	int n = 0;
+
+	// Opening input file 
+	inputFile = fopen(file->filename, "wb");				// Opening with write access so we can delete later
+	if(inputFile == NULL)
+	{
+		// TODO Print an error message here
+		exit(EXIT_FAILURE);
 	}
+
+	// Creating temporary file to work with
+	snprintf(tempFilePath, sizeof(file->filename), "%s.enc", file->filename); //TODO needs error checking and overflow prevention
+	outputFile = fopen(tempFilePath, "wb");
+	if(outputFile == NULL)
+	{
+		// TODO Print an error message here
+		exit(EXIT_FAILURE);
+	}
+
+	passlen = strlen(password);
+	if(passlen == 0)
+	{
+		fclose(inputFile);
+		fclose(outputFile);
+		// TODO Print an error message
+		return -1;
+	}
+
+	// Starting encryption/decryption
+	while ((n = fread(&buffer, 1, 1, inputFile)) > 0) 
+	{
+        buffer ^= (unsigned char)password[(i) % passlen];		// note to Sadie: why use the offset? % passlen is very clever!
+        //offset += n;
+        fwrite(&buffer, 1, 1, outputFile) != n; 		// TODO need to check for errors
+    }
+	
+	// Deleting the original file and replacing it with the encrypted version
+	remove(file->filename);
+	rename(tempFilePath,  file->filename);				// TODO needs error checking
+
+	fclose(inputFile);
+	fclose(outputFile);
+	return 0;
 }
 
 // Blocking function
-file_info* menu_navigation(file_info* head, unsigned int fileCount)
+file_info* menu_navigation(file_info* head, unsigned int fileCount, WINDOW* window)
 {
 	int keypress;
+	int i = 0;
+	int y = 2;
 	unsigned int pos = 0;
+	int maxY = 0;
 	file_info* currentFile = head;
-	mvprintw(2, 0, "Selected File: %d/%d: %s", currentFile->number+1, fileCount, currentFile->filename);
+	wclear(window);
+	box(window,0,0);
+	refresh();
+	wrefresh(window);				// Set focus to window before enabling cursor
+	while(currentFile->number != -1 && i < 10)
+	{
+		mvwprintw(window,y,2, "%d) %s", i, currentFile->filename);
+		currentFile = currentFile->next;
+		wrefresh(window);
+		++i;
+		++y;
+	}
+	maxY = getmaxy(window);
+	mvwprintw(window, maxY-2, 1, "Prev 10 Files: Left Arrow | Next 10 Files: Right Arrow");
+	y = 2;
+	curs_set(2);
+	wmove(window,y,2);
+	wrefresh(window);
 	while(1)
 	{
-		keypress = getch();
+		keypress = wgetch(window);
 		switch(keypress)
 		{
-			case KEY_DOWN:
-				if(pos == 0)
-					pos = 0;
-				else
-					--pos;
-				break;
 			case KEY_UP:
+				if(pos == 0)
+				{
+					pos = 0;
+				} else {
+					--pos;
+					--y;
+				}
+				break;
+			case KEY_DOWN:
 				if(pos == fileCount-1)
+				{
 					pos = fileCount-1;
-				else
+				} else {
 					++pos;
+					++y;
+				}
 				break;
 			case KEY_ENTER:
 			case '\n':
@@ -190,57 +205,64 @@ file_info* menu_navigation(file_info* head, unsigned int fileCount)
 					currentFile = currentFile->next;
 				return currentFile;
 				break;
+			case KEY_LEFT:
+				break;
+			case KEY_RIGHT:
+				break;
+			case 'q':
+				return NULL;
 			default:
 				// Do nothing
 		}
-		currentFile = head;
-		while(currentFile->number != pos)									// TODO def needs error handling
-			currentFile = currentFile->next;
-		move(2, 0);
-		clrtoeol();
-		mvprintw(2, 0, "Selected File: %d/%d: %s", currentFile->number+1, fileCount, currentFile->filename);
-		refresh();
+#if 0
+		mvwprintw(window,1,10, "Y:%d | POS: %d", y, pos);
+#endif
+		wmove(window,y,2);
+		wrefresh(window);
 	}
 	return NULL; // if we get here, there is an error
 }
 
 // Blocking function
-int action_menu(file_info* targetFile, char* encryptionPassword)
+int action_menu(file_info* targetFile, char* encryptionPassword, WINDOW* menuWindow)
 {
-	clear();
 	int choice;
-	char password[MAX_PASSWORD_LEN]; 
-	WINDOW* menu = newwin(7, 60, 4, 10);
-	box(menu, 0, 0);
-	mvwprintw(menu, 1, 2, "Selected: %s", targetFile->filename);
-	mvwprintw(menu, 2, 2, "e - Encrypt    d - Decrypt    c - Cancel");
-	mvwprintw(menu, 4, 2, "Enter choice: ");
-	wrefresh(menu);
+	char password[MAX_PASSWORD_LEN];
+	wclear(menuWindow);
+	box(menuWindow, 0,0);
+	wrefresh(menuWindow);
+	mvwprintw(menuWindow, 1, 2, "Selected: %s", targetFile->filename);
+	mvwprintw(menuWindow, 2, 2, "e - Encrypt | d - Decrypt | c - Cancel");
+	mvwprintw(menuWindow, 4, 2, "Enter choice:");
+	wrefresh(menuWindow);
 	while(1)
 	{
-		choice = wgetch(menu);
-		if (choice == 'e' || choice == 'd') 
+		choice = wgetch(menuWindow);
+		if (choice == 'e' || choice == 'd')
 		{
-			// prompt for password 
+			// prompt for password
 			echo();
-			curs_set(1);
-			mvwprintw(menu, 4, 2, "Password: ");
-			wclrtoeol(menu);
-			mvwgetnstr(menu, 4, 12, password, sizeof(password)-1);
+			curs_set(2);
+			mvwprintw(menuWindow, 4, 2, "Password: ");
+			wclrtoeol(menuWindow);
+			mvwgetnstr(menuWindow, 4, 12, password, sizeof(password)-1);
 			noecho();
-			curs_set(0);
-			refresh();
+			wrefresh(menuWindow);
 			targetFile->action = choice;		// So we can keep track of what we're doing to the file
-			strcpy(encryptionPassword, password);	
+			strcpy(encryptionPassword, password);
 			return 1;
 		} else if (choice == 'c') {
 			return 0;
+		} else if (choice == 'q') {
+			endwin();
+			exit(0);
 		} else {
-			mvwprintw(menu, 4, 2, "Invalid Selection:");
-			refresh();
+			mvwprintw(menuWindow, 4, 2, "Invalid Selection - Returning to the Main Menu");
+			wrefresh(menuWindow);
+			napms(2000);
+			return -1;
 		}
 	}
-
 }
 
 static void free_file_list(file_info* head)
