@@ -6,9 +6,9 @@
 //constants for prime number selection 
 //use in the .C file
 extern int PRIMES[];
-extern int NUMPRIMES;
+extern int NUM_PRIMES;
 
 //function prototype
-void XORprime(unsigned char *data, size_t length, int prime);
+void xor_with_prime(unsigned char *data, size_t length, int prime);
 
 #endif //preprocessor director
