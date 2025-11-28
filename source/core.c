@@ -7,7 +7,7 @@
 
 #define BUF_SIZE 8192
 
-/* Fill fileInfo from path+filename. Returns 0 on success, -1 on error */
+// Fill fileInfo from path+filename. Returns 0 on success, -1 on error 
 int get_file_information(const char* path, const char* filename, file_info* fileInfo)
 {
     if (!path || !filename || !fileInfo) return -1;
@@ -41,50 +41,45 @@ int get_file_information(const char* path, const char* filename, file_info* file
  */
 file_info* get_directory_information(const char* path)
 {
-    /*if (!path) 
-		return NULL;*/		// What are you catching here? This would only fire if null was passed.
-
     DIR* dir = opendir(path);
     if (!dir) 
 		return NULL;
 
     struct dirent* ent;
-	file_info* currentNode = malloc(sizeof(file_info));
-    //file_info* head = NULL;			// The head should just live in main IMO
-    //file_info* tail = NULL;			// I don't see a need for tail
+    file_info* head = malloc(sizeof(file_info));
+    file_info* currentNode = head;
+    currentNode->prev = NULL;
     int idx = 0;
+    struct stat statData;
+    char fullpath[MAX_PATH_LEN + MAX_FILENAME_LEN + 2];
 
     while ((ent = readdir(dir)) != NULL) 
-	{
-        /* skip "." and ".." Otherwise, do the work */
-        if (!(strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)) 
-		{
-			//memset(node, 0, sizeof(file_info));		// Why?	
+    {
+        // skip "." and ".." Otherwise, do the work 
+        if (strcmp(ent->d_name, ".") != 0 && strcmp(ent->d_name, "..") != 0) 
+        {
 			strncpy(currentNode->filename, ent->d_name, MAX_FILENAME_LEN-1);
 			currentNode->filename[MAX_FILENAME_LEN-1] = '\0';
 			strncpy(currentNode->fileLocation, path, MAX_PATH_LEN-1);
 			currentNode->fileLocation[MAX_PATH_LEN-1] = '\0';
 			currentNode->number = idx++;
-			currentNode->next = malloc(sizeof(file_info)); // I don't think we have a choice here and need to rely on field data to catch an empty node.
-
-			/* try to fill stat info */
-			char fullpath[MAX_PATH_LEN + MAX_FILENAME_LEN + 2];
+			currentNode->next = malloc(sizeof(file_info));
+			currentNode->next->prev = currentNode;
 			snprintf(fullpath, sizeof(fullpath), "%s/%s", path, ent->d_name);
-			struct stat st;
-			if (stat(fullpath, &st) == 0) {
-				currentNode->mode = st.st_mode;
-				currentNode->userID = st.st_uid;
-				currentNode->groupID = st.st_gid;
+			if (stat(fullpath, &statData) == 0) 
+			{
+		    	currentNode->mode = statData.st_mode;
+		    	currentNode->userID = statData.st_uid;
+		    	currentNode->groupID = statData.st_gid;
 			} else {
-				currentNode->mode = 0;
-				currentNode->userID = -1;
-				currentNode->groupID = -1;
+		    	currentNode->mode = 0;
+		    	currentNode->userID = -1;
+		    	currentNode->groupID = -1;
 			}
 			currentNode = currentNode->next;
 		}
 	}
-	currentNode->number = -1; // I think this is the easiest way to catch the end of the linked list
-
+	currentNode->number = -1;
     closedir(dir);
     return head;
 }
@@ -92,43 +87,47 @@ file_info* get_directory_information(const char* path)
 /* Simple XOR encrypt/decrypt: same function does both.
  * Returns 0 on success, -1 on failure.
  */
-static int xor_file_with_password(const char* input_path, const char* output_path, const char* password)
+/*int xor_file_with_password(const char* input_path, const char* output_path, const char* password)
 {
-    if (!input_path || !output_path || !password) return -1;
-
     FILE* fin = fopen(input_path, "rb");
-    if (!fin) return -1;
     FILE* fout = fopen(output_path, "wb");
-    if (!fout) { fclose(fin); return -1; }
+
+	//if(fin == NULL || fout == NULL)
+	//	return -1;
 
     size_t passlen = strlen(password);
-    if (passlen == 0) { fclose(fin); fclose(fout); return -1; }
+
+    if (passlen == 0) 
+	{
+		fclose(fin); 
+		fclose(fout); 
+		return -1; 
+	}
 
     unsigned char buf[BUF_SIZE];
     size_t n;
     size_t offset = 0;
-    while ((n = fread(buf, 1, sizeof(buf), fin)) > 0) {
-        for (size_t i = 0; i < n; ++i) {
+    while ((n = fread(buf, 1, sizeof(buf), fin)) > 0)
+	{ 
+        for(size_t i = 0; i < n; ++i) 
             buf[i] ^= (unsigned char)password[(offset + i) % passlen];
-        }
         offset += n;
-        if (fwrite(buf, 1, n, fout) != n) {
-            fclose(fin); fclose(fout); return -1;
+        if (fwrite(buf, 1, n, fout) != n) 
+		{
+            fclose(fin); 
+			fclose(fout); 
+			return -1;
         }
-    }
+    }*/
 
-    fclose(fin);
-    fclose(fout);
-    return 0;
-}
-
-int xor_encrypt_file(const char* input_path, const char* output_path, const char* password)
+/*int xor_encrypt_file(const char* input_path, const char* output_path, const char* password)
 {
     return xor_file_with_password(input_path, output_path, password);
 }
+
 int xor_decrypt_file(const char* input_path, const char* output_path, const char* password)
 {
     return xor_file_with_password(input_path, output_path, password);
-}
+}*/
 
 
