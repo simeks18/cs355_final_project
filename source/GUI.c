@@ -1,7 +1,6 @@
 #include "GUI.h"
 #include <stdlib.h>
 
-
 void gui_init() 
 {
     initscr();
@@ -14,9 +13,11 @@ void gui_init()
 		attron(COLOR_PAIR(CP_TEXT));
         // highlight maybe inverse or bright
         init_pair(CP_SUBWINDOW, COLOR_WHITE, COLOR_BLUE);		// Needs error handling
-    } else {
+    } 
+	else {
 		;//printw("Color Unsupported\n");
 	}
+	
 	cbreak();
     noecho();
     keypad(stdscr, TRUE);		// Starting keypad mode
@@ -26,9 +27,9 @@ void gui_init()
 	//clear();
 }
 
-void create_window(WINDOW* newWindow, int height, int width, int ypos, int xpos)
+void create_window(WINDOW* newWindow, int height, int width, int yPosition, int xPosition)
 {
-	newWindow = newwin(height, width, ypos, xpos);
+	newWindow = newwin(height, width, yPosition, xPosition);
 	wbkgd(newWindow, CP_TEXT);
 	box(newWindow, 0, 0);
 	wrefresh(newWindow);

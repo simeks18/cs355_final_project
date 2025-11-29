@@ -5,7 +5,10 @@
 #include <stdio.h>
 #include "core.h"
 #include "GUI.h"
+#include "xorencryption.h"
 
+#define MAX_PASSWORD_LEN 32
+#define BUFFER_SIZE 1024 //read blocks
 
 /* compile: gcc core.c main.c -lncurses -o fileexplorer */
 
@@ -13,7 +16,46 @@
 static void free_file_list(file_info* head);
 file_info* menu_navigation(file_info* head, unsigned int fileCount, WINDOW* window);
 int action_menu(file_info* targetFile, char* encryptionPassword, WINDOW* subWindow);
-int encrypt(file_info* file, char* password);
+
+int encrypt(file_info* file, char* password){
+	char tempFilePath[MAX_PATH_LEN];
+	unsigned char buffer[BUFFER_SIZE];
+	FILE* outputFile;
+	FILE* inputFile;
+	size_t n = 0;
+
+	int selection = atoi(password);
+
+	if (selection < 1 || selection > NUM_PRIMES){
+		return -1;
+	}
+
+	int prime = PRIMES[selection -1];
+
+	inputFile = fopen(file->filename, "rb");
+
+	if (inputFile == NULL) {
+		return -1;
+	}
+	snprintf(tempFilePath, sizeof(tempFilePath), "%s.enc", file->filename);
+	outputFile = fopen(tempFilePath, "wb");
+	if(outputFile == NULL){
+		fclose(inputFile);
+		return -1;
+	}
+
+	while ((n = fread(buffer, 1, BUFFER_SIZE, inputFile)) > 0){
+		xor_with_prime(buffer, n, prime);
+		fwrite(buffer, 1, n, outputFile);
+	}
+
+	fclose(inputFile);
+	fclose(outputFile);
+
+	remove(file->filename);
+	rename(tempFilePath, file->filename);
+	return 0;
+}
 
 int main(int argc, char* argv[])
 {
@@ -67,19 +109,23 @@ int main(int argc, char* argv[])
         mvprintw(LINES/8,(COLS - strlen(titleString))/2,titleString);
         mvprintw((LINES/8)+1,(COLS - strlen(subtitleString))/2,subtitleString);
         selectedFile = menu_navigation(headNode, count, subWindow);			// Returns selected file (node)
+		
 		if(selectedFile == NULL)
 		{
 			endwin();
 			return 0;
 		}
+		
 		if(action_menu(selectedFile, encryptionPassword, subWindow) == 1)
 		{
 			switch(selectedFile->action)
 			{
 				case 'e':
 					encrypt(selectedFile, encryptionPassword); // Run encryption function on file
+					break;
 				case 'd':
 					encrypt(selectedFile, encryptionPassword); // Run decryption function on file
+					break;				
 				default:
 					; // No action to take place here
 			}
@@ -92,60 +138,6 @@ int main(int argc, char* argv[])
     endwin();
     free_file_list(headNode);
     return 0;
-}
-
-// Encryption/Decryption Function - Returns -1 on failure
-int encrypt(file_info* file, char* password)
-{
-	char tempFilePath[MAX_PATH_LEN];
-    char buffer;
-	FILE* outputFile;
-	FILE* inputFile;
-	size_t passlen;
-	int i = 0;
-	int n = 0;
-
-	// Opening input file 
-	inputFile = fopen(file->filename, "wb");				// Opening with write access so we can delete later
-	if(inputFile == NULL)
-	{
-		// TODO Print an error message here
-		exit(EXIT_FAILURE);
-	}
-
-	// Creating temporary file to work with
-	snprintf(tempFilePath, sizeof(file->filename), "%s.enc", file->filename); //TODO needs error checking and overflow prevention
-	outputFile = fopen(tempFilePath, "wb");
-	if(outputFile == NULL)
-	{
-		// TODO Print an error message here
-		exit(EXIT_FAILURE);
-	}
-
-	passlen = strlen(password);
-	if(passlen == 0)
-	{
-		fclose(inputFile);
-		fclose(outputFile);
-		// TODO Print an error message
-		return -1;
-	}
-
-	// Starting encryption/decryption
-	while ((n = fread(&buffer, 1, 1, inputFile)) > 0) 
-	{
-        buffer ^= (unsigned char)password[(i) % passlen];		// note to Sadie: why use the offset? % passlen is very clever!
-        //offset += n;
-        fwrite(&buffer, 1, 1, outputFile) != n; 		// TODO need to check for errors
-    }
-	
-	// Deleting the original file and replacing it with the encrypted version
-	remove(file->filename);
-	rename(tempFilePath,  file->filename);				// TODO needs error checking
-
-	fclose(inputFile);
-	fclose(outputFile);
-	return 0;
 }
 
 // Blocking function
@@ -228,26 +220,28 @@ int action_menu(file_info* targetFile, char* encryptionPassword, WINDOW* menuWin
 {
 	int choice;
 	char password[MAX_PASSWORD_LEN];
+
 	wclear(menuWindow);
 	box(menuWindow, 0,0);
 	wrefresh(menuWindow);
 	mvwprintw(menuWindow, 1, 2, "Selected: %s", targetFile->filename);
 	mvwprintw(menuWindow, 2, 2, "e - Encrypt | d - Decrypt | c - Cancel");
-	mvwprintw(menuWindow, 4, 2, "Enter choice:");
 	wrefresh(menuWindow);
+
 	while(1)
 	{
 		choice = wgetch(menuWindow);
 		if (choice == 'e' || choice == 'd')
 		{
-			// prompt for password
 			echo();
 			curs_set(2);
-			mvwprintw(menuWindow, 4, 2, "Password: ");
+			mvwprintw(menuWindow, 4, 2, "Prime ID (1-7): ");
 			wclrtoeol(menuWindow);
-			mvwgetnstr(menuWindow, 4, 12, password, sizeof(password)-1);
+
+			mvwgetnstr(menuWindow, 4, 18, password, sizeof(password)-1);
 			noecho();
 			wrefresh(menuWindow);
+
 			targetFile->action = choice;		// So we can keep track of what we're doing to the file
 			strcpy(encryptionPassword, password);
 			return 1;
@@ -260,7 +254,8 @@ int action_menu(file_info* targetFile, char* encryptionPassword, WINDOW* menuWin
 			mvwprintw(menuWindow, 4, 2, "Invalid Selection - Returning to the Main Menu");
 			wrefresh(menuWindow);
 			napms(2000);
-			return -1;
+			mvwprintw(menuWindow, 4, 2, "                          ");			
+			wrefresh(menuWindow);
 		}
 	}
 }
@@ -269,7 +264,7 @@ static void free_file_list(file_info* head)
 {
     file_info* currentFile = head;
 	file_info* tmp;
-    while(tmp)
+    while(currentFile != NULL)
     {
         tmp = currentFile->next;
 		free(currentFile);
