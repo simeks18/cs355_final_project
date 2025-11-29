@@ -8,7 +8,6 @@
 #include <ncurses.h>
 
 void gui_init();
-void create_window(WINDOW* newWindow, int height, int width, int ypos, int xpos);
-
+void create_window(WINDOW* newWindow, int height, int width, int yPosition, int xPosition);
 
 #endif // GUI_H
